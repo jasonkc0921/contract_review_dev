@@ -6,11 +6,11 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Doc Review"/>
   <Description DefaultValue="A template to get started."/>
-  <IconUrl DefaultValue="https://silly-rabanadas-50ce87.netlify.app/assets/icon-32.png"/>
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://silly-rabanadas-50ce87.netlify.app/assets/icon-64.png"/>
-  <SupportUrl DefaultValue="https://silly-rabanadas-50ce87.netlify.app/manifest.xml"/>
+  <SupportUrl DefaultValue="https://www.contoso.com/help"/>
   <AppDomains>
-    <AppDomain>https://silly-rabanadas-50ce87.netlify.app</AppDomain>
+    <AppDomain>https://www.contoso.com</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Document"/>
