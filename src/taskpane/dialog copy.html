@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Review Dialog</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .panel { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+        .text-display { white-space: pre-wrap; background: #f8f8f8; padding: 10px; min-height: 150px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h2>Document Review</h2>
+    <div id="progress"></div>
+    
+    <div class="panel">
+        <h3>Original Text</h3>
+        <div id="original-text" class="text-display"></div>
+    </div>
+    
+    <div class="panel">
+        <h3>Recommended Text</h3>
+        <div id="recommended-text" class="text-display"></div>
+    </div>
+    
+    <div style="text-align: right;">
+        <button id="approve-btn" style="background: #0078d4; color: white; padding: 8px 16px;">Approve</button>
+        <button id="next-btn" style="margin-left: 10px; padding: 8px 16px;">Next</button>
+        <button id="cancel-btn" style="margin-left: 10px; padding: 8px 16px;">Cancel</button>
+    </div>
+    <div id="comment-dialog" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: relative; width: 400px; margin: 100px auto; background: white; padding: 20px; border-radius: 4px;">
+            <h3>Add Comment</h3>
+            <textarea id="comment-text" style="width: 100%; min-height: 100px; margin: 10px 0;"></textarea>
+            <div style="text-align: right;">
+                <button id="add-comment-button">Add Comment</button>
+                <button id="skip-comment-button">Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to get URL parameters
+        function getUrlParams() {
+            const params = {};
+            const searchParams = new URLSearchParams(window.location.search);
+            for (const [key, value] of searchParams) {
+                params[key] = decodeURIComponent(value);
+            }
+            return params;
+        }
+        
+        // Initialize Office
+        Office.onReady(function() {
+            // Get data from URL parameters
+            const params = getUrlParams();
+
+            
+            // Update UI with data
+            document.getElementById('original-text').textContent = params.original || 'No original text';
+            document.getElementById('recommended-text').textContent = params.recommended || 'No recommended text';
+            
+            // Update progress
+            const itemIndex = parseInt(params.itemIndex) || 0;
+            const totalItems = parseInt(params.totalItems) || 0;
+            document.getElementById('progress').textContent = `Reviewing ${itemIndex + 1} of ${totalItems}`;
+            
+            // Set up button handlers
+            // Replace your existing approve button handler
+            document.getElementById('approve-btn').onclick = function() {
+
+                Office.context.ui.messageParent(JSON.stringify({
+                    action: 'approve'
+                }));
+                // Show comment dialog immediately
+                document.getElementById('comment-dialog').style.display = 'block';
+            };
+
+            // Add these new handlers for the comment dialog buttons
+            document.getElementById('add-comment-button').onclick = function() {
+                const commentText = document.getElementById('comment-text').value;
+                Office.context.ui.messageParent(JSON.stringify({
+                    action: 'addComment',
+                    commentText: commentText
+                }));
+                document.getElementById('comment-dialog').style.display = 'none';
+            };
+
+            document.getElementById('skip-comment-button').onclick = function() {
+                Office.context.ui.messageParent(JSON.stringify({
+                    action: 'approve',
+                    skipComment: true
+                }));
+                document.getElementById('comment-dialog').style.display = 'none';
+            };
+            
+            document.getElementById('next-btn').onclick = function() {
+                Office.context.ui.messageParent(JSON.stringify({action: 'next'}));
+            };
+            
+            document.getElementById('cancel-btn').onclick = function() {
+                Office.context.ui.messageParent(JSON.stringify({action: 'cancel'}));
+            };
+        });
+    </script>
+</body>
+</html>

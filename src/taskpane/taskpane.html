@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Document Review</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <link rel="stylesheet" href="taskpane.css">
+</head>
+<body>
+    <div>
+        <h2>Employment Contract Review</h2>
+        <p>This add-in helps you review employment contracts for Malaysian labor law compliance.</p>
+        
+        <div class="action-buttons">
+            <button id="start-review" class="action-button">Review Entire Document</button>
+            <button id="review-selection" class="action-button">Review Selected Text</button>
+        </div>
+        
+        <div id="selection-status" class="selection-status"></div>
+        
+        <div id="status" class="status-message">Ready to review.</div>
+    </div>
+
+    <script src="taskpane.js"></script>
+</body>
+</html>

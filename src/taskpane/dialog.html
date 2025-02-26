@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Review Dialog</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .panel { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+        .text-display { white-space: pre-wrap; background: #f8f8f8; padding: 10px; min-height: 150px; border: 1px solid #ddd; }
+        .text-edit { white-space: pre-wrap; background: #fff; padding: 10px; min-height: 150px; border: 1px solid #0078d4; width: 100%; font-family: Arial; resize: vertical; }
+        .edit-buttons { margin-bottom: 10px; }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h2>Document Review</h2>
+    <div id="progress"></div>
+    
+    <div class="panel">
+        <h3>Original Text</h3>
+        <div id="original-text" class="text-display"></div>
+    </div>
+    
+    <div class="panel">
+        <h3>Recommended Text</h3>
+        <div class="edit-buttons">
+            <button id="edit-btn">Edit</button>
+            <button id="reset-btn" style="margin-left: 10px;">Reset to Original Recommendation</button>
+            <button id="new-suggestion-btn" style="margin-left: 10px; background-color: #0078d4; color: white;">Get New Suggestion</button>
+        </div>
+        <div id="loading-indicator" style="display: none; margin-top: 5px;">
+            <span>Requesting new suggestion from AI...</span>
+            <div class="spinner" style="display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(0, 120, 212, 0.2); border-radius: 50%; border-top-color: #0078d4; animation: spin 1s linear infinite; margin-left: 10px;"></div>
+        </div>
+        <div id="recommended-text-container">
+            <div id="recommended-text" class="text-display"></div>
+            <textarea id="recommended-text-edit" class="text-edit" style="display: none;"></textarea>
+        </div>
+    </div>
+    
+    <div style="text-align: right;">
+        <button id="approve-btn" style="background: #0078d4; color: white; padding: 8px 16px;">Approve</button>
+        <button id="next-btn" style="margin-left: 10px; padding: 8px 16px;">Next</button>
+        <button id="cancel-btn" style="margin-left: 10px; padding: 8px 16px;">Cancel</button>
+    </div>
+    <div id="comment-dialog" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: relative; width: 400px; margin: 100px auto; background: white; padding: 20px; border-radius: 4px;">
+            <h3>Add Comment</h3>
+            <textarea id="comment-text" style="width: 100%; min-height: 100px; margin: 10px 0;"></textarea>
+            <div style="text-align: right;">
+                <button id="add-comment-button">Add Comment</button>
+                <button id="skip-comment-button">Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variable to store original recommendation
+        let originalRecommendedText = 'No recommended text';
+        
+        // Function to get URL parameters
+        function getUrlParams() {
+            const params = {};
+            const searchParams = new URLSearchParams(window.location.search);
+            for (const [key, value] of searchParams) {
+                params[key] = decodeURIComponent(value);
+            }
+            return params;
+        }
+        
+        // Initialize Office
+        Office.onReady(function() {
+            console.log("Office.js is ready");
+            
+            // Add event handler for messages from parent
+            Office.context.ui.addHandlerAsync(
+                Office.EventType.DialogParentMessageReceived,
+                onParentMessageReceived
+            );
+            
+            // Get data from URL parameters
+            const params = getUrlParams();
+            
+            // Store original recommendation for reset function
+            originalRecommendedText = params.recommended || 'No recommended text';
+            
+            // Update UI with data
+            document.getElementById('original-text').textContent = params.original || 'No original text';
+            document.getElementById('recommended-text').textContent = originalRecommendedText;
+            document.getElementById('recommended-text-edit').value = originalRecommendedText;
+            
+            // Update progress
+            const itemIndex = parseInt(params.itemIndex) || 0;
+            const totalItems = parseInt(params.totalItems) || 0;
+            document.getElementById('progress').textContent = `Reviewing ${itemIndex + 1} of ${totalItems}`;
+            
+            // Set up edit button handler
+            document.getElementById('edit-btn').onclick = function() {
+                document.getElementById('recommended-text').style.display = 'none';
+                document.getElementById('recommended-text-edit').style.display = 'block';
+                document.getElementById('recommended-text-edit').focus();
+            };
+            
+            // Set up reset button handler
+            document.getElementById('reset-btn').onclick = function() {
+                document.getElementById('recommended-text-edit').value = originalRecommendedText;
+                document.getElementById('recommended-text').textContent = originalRecommendedText;
+            };
+            
+            // Set up new suggestion button handler
+            document.getElementById('new-suggestion-btn').onclick = function() {
+                // Show loading indicator
+                document.getElementById('loading-indicator').style.display = 'block';
+                
+                // Request a new suggestion from the parent window
+                Office.context.ui.messageParent(JSON.stringify({
+                    action: 'requestNewSuggestion',
+                    originalText: params.original
+                }));
+                
+                console.log("Sent request for new suggestion");
+            };
+            
+            // Set up button handlers
+            document.getElementById('approve-btn').onclick = function() {
+                // Get the current text (edited or not)
+                let finalText;
+                if (document.getElementById('recommended-text-edit').style.display === 'block') {
+                    finalText = document.getElementById('recommended-text-edit').value;
+                    // Update the display view with edited text
+                    document.getElementById('recommended-text').textContent = finalText;
+                } else {
+                    finalText = document.getElementById('recommended-text').textContent;
+                }
+                
+                Office.context.ui.messageParent(JSON.stringify({
+                    action: 'approve',
+                    editedText: finalText
+                }));
+                // Show comment dialog immediately
+                document.getElementById('comment-dialog').style.display = 'block';
+            };
+
+            // Add these new handlers for the comment dialog buttons
+            document.getElementById('add-comment-button').onclick = function() {
+                const commentText = document.getElementById('comment-text').value;
+                Office.context.ui.messageParent(JSON.stringify({
+                    action: 'addComment',
+                    commentText: commentText
+                }));
+                document.getElementById('comment-dialog').style.display = 'none';
+            };
+
+            document.getElementById('skip-comment-button').onclick = function() {
+                Office.context.ui.messageParent(JSON.stringify({
+                    action: 'approve',
+                    skipComment: true
+                }));
+                document.getElementById('comment-dialog').style.display = 'none';
+            };
+            
+            document.getElementById('next-btn').onclick = function() {
+                Office.context.ui.messageParent(JSON.stringify({action: 'next'}));
+            };
+            
+            document.getElementById('cancel-btn').onclick = function() {
+                Office.context.ui.messageParent(JSON.stringify({action: 'cancel'}));
+            };
+        });
+        
+        // Function to handle messages from the parent
+        function onParentMessageReceived(arg) {
+            console.log("Received message from parent:", arg.message);
+            
+            try {
+                const message = JSON.parse(arg.message);
+                
+                if (message.messageType === 'newSuggestion') {
+                    console.log("Received new suggestion:", message);
+                    
+                    // Hide loading indicator
+                    document.getElementById('loading-indicator').style.display = 'none';
+                    
+                    // Update the recommendation with new suggestion
+                    if (message.newText) {
+                        console.log("Updating text with:", message.newText);
+                        
+                        // Update the text
+                        document.getElementById('recommended-text').textContent = message.newText;
+                        document.getElementById('recommended-text-edit').value = message.newText;
+                        
+                        // Update original recommendation for reset function
+                        originalRecommendedText = message.newText;
+                    } else if (message.error) {
+                        console.error("Error getting new suggestion:", message.error);
+                        alert('Error getting new suggestion: ' + message.error);
+                    } else {
+                        console.error("No new text received");
+                        alert('Unable to generate a new suggestion. Please try again.');
+                    }
+                } else {
+                    console.log("Unknown message type:", message.messageType);
+                }
+            } catch (error) {
+                console.error('Error processing parent message:', error);
+            }
+        }
+    </script>
+</body>
+</html>
