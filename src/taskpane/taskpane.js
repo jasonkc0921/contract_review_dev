@@ -162,7 +162,11 @@
     try {
       updateStatus("Requesting AI recommendations...");
 
-      const openaiKey = window.ENV.OPENAI_API_KEY;
+      const openaiKey = window.ENV?.OPENAI_API_KEY;
+    
+      if (!openaiKey) {
+        throw new Error("API key not found. Please check your environment configuration.");
+      }
       
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -557,7 +561,11 @@
     try {
       console.log("Calling OpenAI API for new suggestion");
 
-      const openaiKey = window.ENV.OPENAI_API_KEY;
+      const openaiKey = window.ENV?.OPENAI_API_KEY;
+    
+      if (!openaiKey) {
+        throw new Error("API key not found. Please check your environment configuration.");
+      }
       
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
