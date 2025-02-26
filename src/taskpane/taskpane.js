@@ -162,7 +162,7 @@
     try {
       updateStatus("Requesting AI recommendations...");
 
-      const openaiKey = window.ENV?.OPENAI_API_KEY;
+      const openaiKey = window.ENV.OPENAI_API_KEY;
       
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -557,7 +557,7 @@
     try {
       console.log("Calling OpenAI API for new suggestion");
 
-      const openaiKey = window.ENV?.OPENAI_API_KEY;
+      const openaiKey = window.ENV.OPENAI_API_KEY;
       
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
