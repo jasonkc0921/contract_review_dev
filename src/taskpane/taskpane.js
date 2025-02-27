@@ -92,7 +92,7 @@
         // Get the text from the selection
         const selectedText = selection.text;
         
-        // Send to OpenAI API
+        // Send to OpenAI API via Netlify Function
         const recommendations = await getAIRecommendations(selectedText);
         
         if (recommendations && recommendations.length > 0) {
@@ -135,7 +135,7 @@
         
         updateStatus("Sending to AI for review...");
         
-        // Send to OpenAI API
+        // Send to OpenAI API via Netlify Function
         const recommendations = await getAIRecommendations(documentText);
         
         if (recommendations && recommendations.length > 0) {
@@ -157,31 +157,17 @@
     }
   }
 
-  // Function to call OpenAI API
+  // Function to call OpenAI API via Netlify Function
   async function getAIRecommendations(text) {
     try {
       updateStatus("Requesting AI recommendations...");
-
-      const openaiKey = window.ENV?.OPENAI_API_KEY;
-    
-      if (!openaiKey) {
-        throw new Error("API key not found. Please check your environment configuration.");
-      }
       
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      const response = await fetch("/.netlify/functions/openai-proxy", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openaiKey}`
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          model: "gpt-4",
-          messages: [
-            { role: "system", content: "You are a labor law advisor who is specialized in labor law in Malaysia." },
-            { role: "user", content: `please review the attached employment contract and suggest sections that need to be amended so that it conforms to Malaysia employment law in following text, output them in Json object that consists of original text and recommended text; the key for original text is "original_text"., and key for recommended text is "recommended_text"; you should avoid capturing original texts that are title of a section, typically short wordings, less than 10 words, that ended with 2 new lines "\n\n" or colon or dash- "${text}"` }
-          ],
-          max_tokens: 2500
-        })
+        body: JSON.stringify({ text })
       });
 
       if (!response.ok) {
@@ -375,6 +361,34 @@
     }
   }
   
+  // Function to get a new suggestion from OpenAI via Netlify Function
+  async function getNewSuggestionFromAI(originalText) {
+    try {
+      console.log("Calling Netlify function for new suggestion");
+      
+      const response = await fetch("/.netlify/functions/new-suggestion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ originalText })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Response for new suggestion:", data);
+
+      // Extract the suggested text
+      return data.text || "";
+    } catch (error) {
+      console.error('Error getting new suggestion:', error);
+      throw error;
+    }
+  }
+  
   // Show the review dialog using Office Dialog API
   function showReviewDialog() {
     // Prepare the data to pass to the dialog
@@ -502,7 +516,7 @@
       console.log("Requesting new suggestion for text:", originalText);
       updateStatus("Requesting new suggestion from AI...");
       
-      // Make a direct call to OpenAI for a single suggestion
+      // Make a direct call to OpenAI for a single suggestion via Netlify Function
       const newSuggestion = await getNewSuggestionFromAI(originalText);
       
       if (newSuggestion && dialogPromise) {
@@ -553,56 +567,6 @@
           console.error("Error sending error message to dialog:", commError);
         }
       }
-    }
-  }
-  
-  // Function to get a new suggestion from OpenAI
-  async function getNewSuggestionFromAI(originalText) {
-    try {
-      console.log("Calling OpenAI API for new suggestion");
-
-      const openaiKey = window.ENV?.OPENAI_API_KEY;
-    
-      if (!openaiKey) {
-        throw new Error("API key not found. Please check your environment configuration.");
-      }
-      
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openaiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4",
-          messages: [
-            { 
-              role: "system", 
-              content: "You are a labor law advisor specialized in Malaysian labor law. You're being asked to revise a specific clause from an employment contract to ensure it conforms to Malaysian employment law. Provide ONLY the revised text without any explanations or preamble."
-            },
-            { 
-              role: "user", 
-              content: `Please review and revise the following employment contract clause to fully comply with Malaysian labor law. Return ONLY the revised text: "${originalText}"`
-            }
-          ],
-          max_tokens: 1000
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Raw OpenAI response for new suggestion:", data);
-
-      // Extract the suggested text
-      const suggestedText = data.choices[0].message.content.trim();
-      console.log("Extracted suggestion:", suggestedText);
-      return suggestedText;
-    } catch (error) {
-      console.error('Error calling OpenAI for new suggestion:', error);
-      throw error;
     }
   }
   
