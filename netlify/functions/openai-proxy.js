@@ -33,12 +33,13 @@ exports.handler = async function(event, context) {
         "Authorization": `Bearer ${openaiKey}`
       },
       body: JSON.stringify({
-        model: model || "gpt-4",
+        model: model || "gpt-3.5-turbo",
         messages: [
           { role: "system", content: prompt?.systemMessage || systemMessage },
           { role: "user", content: prompt?.userMessage || defaultPrompt }
         ],
-        max_tokens: 2500
+        max_tokens: 2500,
+        temperature: 0.5
       })
     });
     

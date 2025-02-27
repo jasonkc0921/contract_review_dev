@@ -25,7 +25,7 @@ exports.handler = async function(event, context) {
         "Authorization": `Bearer ${openaiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo",
         messages: [
           { 
             role: "system", 
@@ -36,7 +36,8 @@ exports.handler = async function(event, context) {
             content: `Please review and revise the following employment contract clause to fully comply with Malaysian labor law. Return ONLY the revised text: "${originalText}"`
           }
         ],
-        max_tokens: 1000
+        max_tokens: 1000,
+        temperature: 0.5
       })
     });
 
